@@ -29,6 +29,8 @@ import {OmniTransitions} from "./components/omni-transitions/component.js"
 import {ExportPanel} from "./components/omni-timeline/views/export/panel.js"
 import {MediaPlayerPanel} from "./components/omni-timeline/views/media-player/panel.js"
 import {ExportConfirmModal, ExportInProgressOverlay} from './components/omni-timeline/views/export/view.js'
+import {OmniSubtitles} from "./components/omni-subtitles/component.js"
+import {SubtitlesPanel} from "./components/omni-subtitles/panel.js"
 
 posthog.init('phc_CMbHMWGVJSqM1RqGyGxWCyqgaSGbGFKl964fIN3NDwU',
 	{
@@ -52,7 +54,8 @@ export function setupContext(projectId: string) {
 			ProjectSettingsPanel,
 			AnimPanel,
 			FiltersPanel,
-			TransitionsPanel
+			TransitionsPanel,
+			SubtitlesPanel
 		},
 		layouts: {
 			empty: single_panel_layout("TimelinePanel"),
@@ -146,7 +149,7 @@ const router = new HashRouter({
 			collaboration.disconnect()
 		}
 		if(!registered) {
-			register_to_dom({OmniTimeline, OmniText, OmniMedia, ConstructEditor, OmniFilters, OmniTransitions, OmniAnim})
+			register_to_dom({OmniTimeline, OmniText, OmniMedia, ConstructEditor, OmniFilters, OmniTransitions, OmniAnim, OmniSubtitles})
 			registered = true
 		}
 		const omnislate = setupContext(projectId)

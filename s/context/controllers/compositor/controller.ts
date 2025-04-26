@@ -10,6 +10,7 @@ import {VideoManager} from "./parts/video-manager.js"
 import {FiltersManager} from "./parts/filter-manager.js"
 import {AlignGuidelines} from "./lib/aligning_guidelines.js"
 import {AnimationManager} from "./parts/animation-manager.js"
+import {SubtitleManager} from "./parts/subtitle-manager.js"
 import {compare_arrays} from "../../../utils/compare_arrays.js"
 import {TransitionManager} from "./parts/transition-manager.js"
 import {get_effect_at_timestamp} from "../video-export/utils/get_effect_at_timestamp.js"
@@ -23,6 +24,7 @@ export interface Managers {
 	animationManager: AnimationManager
 	filtersManager: FiltersManager
 	transitionManager: TransitionManager
+	subtitleManager: SubtitleManager
 }
 
 export class Compositor {
@@ -55,14 +57,17 @@ export class Compositor {
 		this.app.stage.on('pointerup', () => this.canvasElementDrag.onDragEnd())
 		this.app.stage.on('pointerupoutside', this.canvasElementDrag.onDragEnd)
 
+		// need to initialise textManager so it can be used by subtitleManager, might be worth reviewing this
+		const textManager = new TextManager(this, actions)
 		this.managers = {
 			videoManager: new VideoManager(this, actions),
-			textManager: new TextManager(this, actions),
+			textManager: textManager,
 			imageManager: new ImageManager(this, actions),
 			audioManager: new AudioManager(this, actions),
 			animationManager: new AnimationManager(this, actions, "Animation"),
 			filtersManager: new FiltersManager(this, actions),
-			transitionManager: new TransitionManager(this, actions)
+			transitionManager: new TransitionManager(this, actions),
+			subtitleManager: new SubtitleManager(textManager)
 		}
 
 		this.#on_playing()
