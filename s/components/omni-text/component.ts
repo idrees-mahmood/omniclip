@@ -76,6 +76,29 @@ export const OmniText = shadow_component(use => {
 		`
 	}
 
+
+	const renderMultilineStyles = () => {
+		return html`
+			<div class="cnt">
+				<sl-checkbox @sl-change=${manager.set_word_wrap} ?checked=${selectedText?.wordWrap ?? false}>Enable</sl-checkbox>
+				<sl-checkbox @sl-change=${manager.set_break_words} ?checked=${selectedText?.breakWords ?? false}>Break Words</sl-checkbox>
+				<sl-select @sl-change=${manager.set_text_align} value=${selectedText?.align ?? manager.textDefaultStyles.align[0]} label="Align" size="small">
+					${manager.textDefaultStyles.align.map(align => html`
+						<sl-option value=${align}>${align}</sl-option>
+				`)}
+				</sl-select>
+				<sl-select @sl-change=${manager.set_white_space} value=${selectedText?.whiteSpace ?? manager.textDefaultStyles.whiteSpace[0]} label="White Space" size="small">
+					${manager.textDefaultStyles.whiteSpace.map(v => html`
+						<sl-option value=${v}>${v}</sl-option>
+				`)}
+				</sl-select>
+				<sl-input @sl-change=${manager.set_wrap_width} type="number" step="10" min="0" value=${selectedText?.wordWrapWidth ?? "100"} label="Wrap Width" size="small"></sl-input>
+				<sl-input @sl-change=${manager.set_line_height} type="number" step="1" min="0" value==${selectedText?.lineHeight ?? "0"} label="Line Height" size="small"></sl-input>
+				<sl-input @sl-change=${manager.set_leading} type="number" step="1" min="0" value==${selectedText?.leading ?? "0"} label="Leading" size="small"></sl-input>
+			</div>
+		`
+	}
+
 	const renderFillStyles = () => {
 		return html`
 			<div class="cnt">
@@ -216,27 +239,6 @@ export const OmniText = shadow_component(use => {
 		`
 	}
 
-	const renderMultilineStyles = () => {
-		return html`
-			<div class="cnt">
-				<sl-checkbox @sl-change=${manager.set_word_wrap} ?checked=${selectedText?.wordWrap ?? false}>Enable</sl-checkbox>
-				<sl-checkbox @sl-change=${manager.set_break_words} ?checked=${selectedText?.breakWords ?? false}>Break Words</sl-checkbox>
-				<sl-select @sl-change=${manager.set_text_align} value=${selectedText?.align ?? manager.textDefaultStyles.align[0]} label="Align" size="small">
-					${manager.textDefaultStyles.align.map(align => html`
-						<sl-option value=${align}>${align}</sl-option>
-				`)}
-				</sl-select>
-				<sl-select @sl-change=${manager.set_white_space} value=${selectedText?.whiteSpace ?? manager.textDefaultStyles.whiteSpace[0]} label="White Space" size="small">
-					${manager.textDefaultStyles.whiteSpace.map(v => html`
-						<sl-option value=${v}>${v}</sl-option>
-				`)}
-				</sl-select>
-				<sl-input @sl-change=${manager.set_wrap_width} type="number" step="10" min="0" value=${selectedText?.wordWrapWidth ?? "100"} label="Wrap Width" size="small"></sl-input>
-				<sl-input @sl-change=${manager.set_line_height} type="number" step="1" min="0" value==${selectedText?.lineHeight ?? "0"} label="Line Height" size="small"></sl-input>
-				<sl-input @sl-change=${manager.set_leading} type="number" step="1" min="0" value==${selectedText?.leading ?? "0"} label="Leading" size="small"></sl-input>
-			</div>
-		`
-	}
 
 	const textEffects = use.context.state.effects.filter(e => e.kind === "text") as TextEffect[]
 
