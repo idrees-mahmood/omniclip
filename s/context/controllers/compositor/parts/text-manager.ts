@@ -14,10 +14,35 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	#setPermissionStatus: (() => void) | null = null
 	#permissionStatus: PermissionStatus | null = null
 	textDefaultStyles = flat.state(TextStylesValues)
+	#customFonts: FontMetadata[] = []
 
-	constructor(private compositor: Compositor, private actions: Actions) {super()}
+	constructor(private compositor: Compositor, private actions: Actions) {
+		super()
+		// Load custom fonts
+		this.#loadCustomFonts()
+	}
 
-	create_and_add_text_effect(state: State) {
+	#loadCustomFonts() {
+		// Add Uthamnic font to the list of custom fonts
+		const uthmanicFont = new FontFace('UthmanicHafs', 'url(/assets/fonts/UthmanicHafs1Ver18.ttf)')
+		
+		uthmanicFont.load().then(font => {
+			// Use type assertion to fix TypeScript error
+			(document.fonts as any).add(font)
+			// Add the font to our custom list
+			this.#customFonts.push({
+				family: 'UthmanicHafs',
+				fullName: 'Uthmanic Hafs',
+				postscriptName: 'UthmanicHafs',
+				style: 'normal',
+				weight: 400
+			})
+		}).catch(error => {
+			console.error('Failed to load UthmanicHafs font:', error)
+		})
+	}
+
+	create_and_add_text_effect(state: State, isRTL = false) {
 		const effect: TextEffect = {
 			id: generate_id(),
 			kind: "text",
@@ -27,10 +52,10 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 			end: 5000,
 			track: 0,
 			fontSize: 38,
-			text: "Default text",
+			text: isRTL ? "النص الافتراضي" : "Default text", // Arabic default text if RTL
 			fontStyle: "normal",
-			fontFamily: "Arial",
-			align: "center",
+			fontFamily: isRTL ? "UthmanicHafs" : "Arial",
+			align: isRTL ? "right" : "center", // Right alignment for RTL
 			fontVariant: "normal",
 			fontWeight: "normal",
 			fill: ["#FFFFFF"],
@@ -83,6 +108,16 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 		})
 
 		const text = new PIXI.Text(props.text, style)
+		
+		// Handle RTL text direction if using UthmanicHafs or other RTL fonts
+		if (props.fontFamily === 'UthmanicHafs') {
+			text.style.align = 'right'
+			// Set direction for RTL text rendering
+			text.style.fontStyle = 'normal'
+			//@ts-ignore - Add RTL text direction property
+			text.style.direction = 'rtl'
+		}
+		
 		text.eventMode = "static"
 		text.cursor = "pointer"
 		text.x = rect.position_on_canvas.x
@@ -554,39 +589,59 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	async getFonts(onPermissionStateChange: (state: PermissionState, deniedStateText: string, fonts?: FontMetadata[]) => void): Promise<FontMetadata[]> {
-		//@ts-ignore
-		const permissionStatus = this.#permissionStatus = await navigator.permissions.query({ name: 'local-fonts' })
-		const deniedStateText = "To enable local fonts, go to browser settings > site permissions, and allow fonts for this site."
-		const setStatus = this.#setPermissionStatus = async () => {
-			if(permissionStatus.state === "granted") {
-				const fonts = await window.queryLocalFonts()
-				onPermissionStateChange(permissionStatus.state, "", fonts)
-			} else if (permissionStatus.state === "denied") {
-				onPermissionStateChange(permissionStatus.state, deniedStateText)
-			}
-		}
-		return new Promise((resolve, reject) => {
-			if ('permissions' in navigator && 'queryLocalFonts' in window) {
-				async function checkFontAccess() {
-					try {
-						permissionStatus.addEventListener("change", setStatus)
-						if (permissionStatus.state === 'granted') {
-							const fonts = await window.queryLocalFonts()
-							resolve(fonts)
-						} else if (permissionStatus.state === "prompt") {
-							reject("User needs to grant permission for local fonts.")
-						} else if(permissionStatus.state === "denied") {
-							reject(deniedStateText)
-						}
-					} catch (err) {
-						reject(err)
-					}
+		// Always return our custom fonts
+		const customFonts = [...this.#customFonts]
+		
+		try {
+			//@ts-ignore
+			const permissionStatus = this.#permissionStatus = await navigator.permissions.query({ name: 'local-fonts' })
+			const deniedStateText = "To enable local fonts, go to browser settings > site permissions, and allow fonts for this site."
+			const setStatus = this.#setPermissionStatus = async () => {
+				if(permissionStatus.state === "granted") {
+					const fonts = await window.queryLocalFonts()
+					// Combine system fonts with our custom fonts
+					const allFonts = [...customFonts, ...fonts]
+					onPermissionStateChange(permissionStatus.state, "", allFonts)
+				} else if (permissionStatus.state === "denied") {
+					onPermissionStateChange(permissionStatus.state, deniedStateText, customFonts)
 				}
-				checkFontAccess()
-			} else {
-				reject("Local Font Access API is not supported in this browser.")
 			}
-		})
+			
+			return new Promise((resolve, reject) => {
+				if ('permissions' in navigator && 'queryLocalFonts' in window) {
+					async function checkFontAccess() {
+						try {
+							permissionStatus.addEventListener("change", setStatus)
+							if (permissionStatus.state === 'granted') {
+								const fonts = await window.queryLocalFonts()
+								// Combine system fonts with our custom fonts
+								resolve([...customFonts, ...fonts])
+							} else if (permissionStatus.state === "prompt") {
+								// Return custom fonts while waiting for permission
+								resolve(customFonts)
+								reject("User needs to grant permission for local fonts.")
+							} else if(permissionStatus.state === "denied") {
+								// Return at least custom fonts when denied
+								resolve(customFonts)
+								reject(deniedStateText)
+							}
+						} catch (err) {
+							// Return custom fonts on error
+							resolve(customFonts)
+							reject(err)
+						}
+					}
+					checkFontAccess()
+				} else {
+					// API not supported, return custom fonts
+					resolve(customFonts)
+					reject("Local Font Access API is not supported in this browser.")
+				}
+			})
+		} catch (error) {
+			// Return custom fonts in case of errors
+			return Promise.resolve(customFonts)
+		}
 	}
 }
 

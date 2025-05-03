@@ -28,6 +28,7 @@ export default template(async basic => {
 			<script defer src="https://cdn.jsdelivr.net/npm/es-module-shims@1.8.2/dist/es-module-shims.min.js"></script>
 			<script type="module-shim" src="./main.js"></script>
 			<link rel="stylesheet" href="index.css">
+			<link rel="stylesheet" href="./assets/fonts/uthamnic-font.css">
 			<link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32x32.png">
 			<link rel="preconnect" href="https://fonts.googleapis.com">
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
