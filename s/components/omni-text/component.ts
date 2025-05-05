@@ -268,11 +268,11 @@ export const OmniText = shadow_component(use => {
 			<div class="styles" >
 				<sl-textarea ?disabled=${!selectedText} @sl-input=${manager.set_text_content} size="small" value=${selectedText?.text ?? "Default text"}></sl-textarea>
 				<sl-details ?disabled=${!selectedText} summary="Font">${renderFontStyles()}</sl-details>
+				<sl-details ?disabled=${!selectedText} summary="Multiline">${renderMultilineStyles()}</sl-details>
 				<sl-details ?disabled=${!selectedText} summary="Fill">${renderFillStyles()}</sl-details>
 				<sl-details ?disabled=${!selectedText} summary="Stroke">${renderStrokeStyles()}</sl-details>
 				<sl-details ?disabled=${!selectedText} summary="Layout">${renderLayoutStyles()}</sl-details>
 				<sl-details ?disabled=${!selectedText} summary="Drop Shadow">${renderDropShadowStyles()}</sl-details>
-				<sl-details ?disabled=${!selectedText} summary="Multiline">${renderMultilineStyles()}</sl-details>
 			</div>
 			<div class="example">
 				<span>Default text</span>
