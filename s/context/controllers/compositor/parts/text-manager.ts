@@ -24,8 +24,10 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 
 	#loadCustomFonts() {
 		// Add Uthamnic font to the list of custom fonts
-		const uthmanicFont = new FontFace('UthmanicHafs', 'url(/assets/fonts/UthmanicHafs1Ver18.ttf)')
+		const uthmanicFont = new FontFace('UthmanicHafs', 'url(/assets/fonts/UthmanicHafs/UthmanicHafs1Ver18.ttf)')
+		const indopakFont = new FontFace('IndopakNastaleeq', 'url(/assets/fonts/Indopak/IndopakNastaleeq.ttf)')
 		
+		// Load Uthamnic font
 		uthmanicFont.load().then(font => {
 			// Use type assertion to fix TypeScript error
 			(document.fonts as any).add(font)
@@ -40,9 +42,25 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 		}).catch(error => {
 			console.error('Failed to load UthmanicHafs font:', error)
 		})
+		
+		// Load Indopak font
+		indopakFont.load().then(font => {
+			// Use type assertion to fix TypeScript error
+			(document.fonts as any).add(font)
+			// Add the font to our custom list
+			this.#customFonts.push({
+				family: 'IndopakNastaleeq',
+				fullName: 'Indopak Nastaleeq',
+				postscriptName: 'IndopakNastaleeq',
+				style: 'normal',
+				weight: 400
+			})
+		}).catch(error => {
+			console.error('Failed to load Indopak font:', error)
+		})
 	}
 
-	create_and_add_text_effect(state: State, isRTL = false) {
+	create_and_add_text_effect(state: State, isRTL = false, fontType = 'default') {
 		const effect: TextEffect = {
 			id: generate_id(),
 			kind: "text",
@@ -54,7 +72,8 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 			fontSize: 38,
 			text: isRTL ? "النص الافتراضي" : "Default text", // Arabic default text if RTL
 			fontStyle: "normal",
-			fontFamily: isRTL ? "UthmanicHafs" : "Arial",
+			fontFamily: fontType === 'default' ? (isRTL ? "UthmanicHafs" : "Arial") : 
+			           fontType === 'indopak' ? "IndopakNastaleeq" : "Arial",
 			align: isRTL ? "right" : "center", // Right alignment for RTL
 			fontVariant: "normal",
 			fontWeight: "normal",
@@ -110,7 +129,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 		const text = new PIXI.Text(props.text, style)
 		
 		// Handle RTL text direction if using UthmanicHafs or other RTL fonts
-		if (props.fontFamily === 'UthmanicHafs') {
+		if (props.fontFamily === 'UthmanicHafs' || props.fontFamily === 'IndopakNastaleeq') {
 			text.style.align = 'right'
 			// Set direction for RTL text rendering
 			text.style.fontStyle = 'normal'
