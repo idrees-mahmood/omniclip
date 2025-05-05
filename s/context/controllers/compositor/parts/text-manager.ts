@@ -24,14 +24,14 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 
 	#loadCustomFonts() {
 		// Add Uthamnic font to the list of custom fonts
-		const uthmanicFont = new FontFace('UthmanicHafs', 'url(/assets/fonts/UthmanicHafs1Ver18.ttf)')
+		const uthmanicFont = new FontFace('Uthmanic Hafs', 'url(/assets/fonts/UthmanicHafs1Ver18.ttf)')
 		
 		uthmanicFont.load().then(font => {
 			// Use type assertion to fix TypeScript error
 			(document.fonts as any).add(font)
 			// Add the font to our custom list
 			this.#customFonts.push({
-				family: 'UthmanicHafs',
+				family: 'Uthmanic Hafs',
 				fullName: 'Uthmanic Hafs',
 				postscriptName: 'UthmanicHafs',
 				style: 'normal',
@@ -54,7 +54,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 			fontSize: 38,
 			text: isRTL ? "النص الافتراضي" : "Default text", // Arabic default text if RTL
 			fontStyle: "normal",
-			fontFamily: isRTL ? "UthmanicHafs" : "Arial",
+			fontFamily: isRTL ? "Uthmanic Hafs" : "Arial",
 			align: isRTL ? "right" : "center", // Right alignment for RTL
 			fontVariant: "normal",
 			fontWeight: "normal",
@@ -110,7 +110,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 		const text = new PIXI.Text(props.text, style)
 		
 		// Handle RTL text direction if using UthmanicHafs or other RTL fonts
-		if (props.fontFamily === 'UthmanicHafs') {
+		if (props.fontFamily === 'Uthmanic Hafs') {
 			text.style.align = 'right'
 			// Set direction for RTL text rendering
 			text.style.fontStyle = 'normal'
