@@ -250,19 +250,21 @@ export const OmniText = shadow_component(use => {
 				@sl-change=${(e: Event) => {
 					const id = (e.target as HTMLSelectElement).value
 					const effect = use.context.state.effects.find(e => e.id === id)
-					manager.set_selected_effect(effect as TextEffect | null)
+					use.context.controllers.timeline.set_selected_effect(effect, use.context.state)
 				}}
-				placeholder="Select text to edit"
+				placeholder="no text selected"
+				value=${selectedText?.id}
+				class="select-text" label="Select text" help-text="Select text to edit or add if none" size="small"
 			>
-				${textEffects.map(effect => html`
-					<sl-option value=${effect.id}>${effect.text}</sl-option>
-				`)}
+				${textEffects.map(e => html`<sl-option value=${e.id}>${e.text} (${convert_ms_to_hms(e.start_at_position)})</sl-option>`)}
+				<sl-button
+					@click=${() => manager.create_and_add_text_effect(use.context.state)}
+					class="add-text" variant="default" size="small"
+				>
+					<sl-icon slot="prefix" name="plus-lg"></sl-icon>
+					Add Text
+				</sl-button>
 			</sl-select>
-			<div class="actions">
-				<sl-button size="small" @click=${() => manager.create_and_add_text_effect(use.context.state)}>Create Text</sl-button>
-				<sl-button size="small" @click=${() => manager.create_and_add_text_effect(use.context.state, true)}>Create RTL Text</sl-button>
-				<sl-button size="small" @click=${() => manager.create_and_add_text_effect(use.context.state, true, 'indopak')}>Create Indopak</sl-button>
-			</div>
 			<div class="styles" >
 				<sl-textarea ?disabled=${!selectedText} @sl-input=${manager.set_text_content} size="small" value=${selectedText?.text ?? "Default text"}></sl-textarea>
 				<sl-details ?disabled=${!selectedText} summary="Font">${renderFontStyles()}</sl-details>

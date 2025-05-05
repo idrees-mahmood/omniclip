@@ -1,14 +1,6 @@
 @font-face {
   font-family: 'UthmanicHafs';
-  src: url('UthmanicHafs/UthmanicHafs1Ver18.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'IndopakNastaleeq';
-  src: url('Indopak/IndopakNastaleeq.ttf') format('truetype');
+  src: url('UthmanicHafs1Ver18.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -19,4 +11,5 @@
   direction: rtl;
   text-align: right;
   unicode-bidi: bidi-override;
+  font-family: 'UthmanicHafs', sans-serif;
 } 
