@@ -1,23 +1,73 @@
-import {generate_id, flat} from "@benev/slate"
+import { generate_id, flat } from "@benev/slate"
 
-import {Compositor} from "../controller.js"
-import {Actions} from "../../../actions.js"
-import {LineJoin} from "../../../pixi.mjs.js"
-import {omnislate} from "../../../context.js"
-import {FontMetadata} from "../../../global.js"
-import {TextEffect, State} from "../../../types.js"
-import {find_place_for_new_effect} from "../../timeline/utils/find_place_for_new_effect.js"
-import type {TextStyleAlign, TextStyleFontStyle, TextStyleFontVariant, TextStyleFontWeight, TEXT_GRADIENT, TextStyleTextBaseline, TextStyleWhiteSpace} from "pixi.js"
+import { Compositor } from "../controller.js"
+import { Actions } from "../../../actions.js"
+import { LineJoin } from "../../../pixi.mjs.js"
+import { omnislate } from "../../../context.js"
+import { FontMetadata } from "../../../global.js"
+import { TextEffect, State } from "../../../types.js"
+import { find_place_for_new_effect } from "../../timeline/utils/find_place_for_new_effect.js"
+import type { TextStyleAlign, TextStyleFontStyle, TextStyleFontVariant, TextStyleFontWeight, TEXT_GRADIENT, TextStyleTextBaseline, TextStyleWhiteSpace } from "pixi.js"
 
-export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PIXI.Container}> {
+export class TextManager extends Map<string, { sprite: PIXI.Text, transformer: PIXI.Container }> {
 	#selected: TextEffect | null = null
 	#setPermissionStatus: (() => void) | null = null
 	#permissionStatus: PermissionStatus | null = null
 	textDefaultStyles = flat.state(TextStylesValues)
+	#customFonts: FontMetadata[] = []
 
-	constructor(private compositor: Compositor, private actions: Actions) {super()}
+	constructor(private compositor: Compositor, private actions: Actions) {
+		super()
+		// Load custom fonts
+		this.#loadCustomFonts()
+	}
 
-	create_and_add_text_effect(state: State) {
+	#loadCustomFonts() {
+		// Add Uthamnic font to the list of custom fonts
+		const uthmanicFont = new FontFace('Uthmanic Hafs', 'url(/assets/fonts/UthmanicHafs1Ver18.ttf)')
+		const indoPak = new FontFace("Indo Pak", 'url(/assets/fonts/Indopak/AlQuran-IndoPak-by-QuranWBW.v.4.2.2.ttf)');
+		// Add Poppins fonts
+		const poppinsRegular = new FontFace('Poppins-Regular', 'url(/assets/fonts/Poppins/Fonts/WEB/fonts/Poppins-Regular.ttf)')
+		const poppinsBold = new FontFace('Poppins-Bold', 'url(/assets/fonts/Poppins/Fonts/WEB/fonts/Poppins-Bold.ttf)')
+
+		// Add Nippo fonts
+		const nippoRegular = new FontFace('Nippo-Regular', 'url(/assets/fonts/Nippo/Fonts/WEB/fonts/Nippo-Regular.ttf)')
+
+		// Add NotoEmoji
+		const notoEmoji = new FontFace('NotoEmoji-Bold', 'url(/assets/fonts/NotoEmoji/Fonts/WEB/fonts/NotoEmoji-Bold.ttf)')
+
+		Promise.all([
+			this.#loadFont(uthmanicFont, 'Uthmanic Hafs', 'Uthmanic Hafs', 'UthmanicHafs1Ver18', 400),
+			this.#loadFont(indoPak, "Indo Pak", 'Indo Pak', 'IndopakNastaleeq', 400),
+			this.#loadFont(poppinsRegular, 'Poppins', 'Poppins', 'Poppins-Regular', 400),
+			this.#loadFont(poppinsBold, 'Poppins', 'Poppins', 'Poppins-Bold', 700),
+			this.#loadFont(nippoRegular, 'Nippo', 'Nippo', 'Nippo-Regular', 400),
+			this.#loadFont(notoEmoji, 'NotoEmoji-Bold', 'NotoEmoji-Bold', 'NotoEmoji-Bold', 400)
+		]).then(() => {
+			console.log("Custom fonts loaded successfully")
+		}).catch(error => {
+			console.error("Error loading custom fonts:", error)
+		})
+	}
+
+	#loadFont(fontFace: FontFace, family: string, fullName: string, postscriptName: string, weight: number) {
+		return fontFace.load().then(font => {
+			// Use type assertion to fix TypeScript error
+			(document.fonts as any).add(font)
+			// Add the font to our custom list
+			this.#customFonts.push({
+				family,
+				fullName,
+				postscriptName,
+				style: 'normal',
+				weight
+			})
+		}).catch(error => {
+			console.error(`Failed to load ${fullName} font:`, error)
+		})
+	}
+
+	create_and_add_text_effect(state: State, isRTL = false) {
 		const effect: TextEffect = {
 			id: generate_id(),
 			kind: "text",
@@ -27,10 +77,10 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 			end: 5000,
 			track: 0,
 			fontSize: 38,
-			text: "Default text",
+			text: isRTL ? "النص الافتراضي" : "Default text", // Arabic default text if RTL
 			fontStyle: "normal",
-			fontFamily: "Arial",
-			align: "center",
+			fontFamily: isRTL ? "Uthmanic Hafs" : "Arial",
+			align: isRTL ? "right" : "center", // Right alignment for RTL
 			fontVariant: "normal",
 			fontWeight: "normal",
 			fill: ["#FFFFFF"],
@@ -55,7 +105,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 			wordWrapWidth: 100,
 			whiteSpace: "pre",
 			rect: {
-				position_on_canvas: {x: this.compositor.app.stage.width / 2, y: this.compositor.app.stage.height / 2},
+				position_on_canvas: { x: this.compositor.app.stage.width / 2, y: this.compositor.app.stage.height / 2 },
 				pivot: {
 					x: 0,
 					y: 0
@@ -67,7 +117,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 				rotation: 0,
 			}
 		}
-		const {position, track} = find_place_for_new_effect(state.effects, state.tracks)
+		const { position, track } = find_place_for_new_effect(state.effects, state.tracks)
 		effect.start_at_position = position!
 		effect.track = track
 		this.add_text_effect(effect)
@@ -75,7 +125,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	add_text_effect(effect: TextEffect, recreate?: boolean) {
-		const {rect, ...props} = effect
+		const { rect, ...props } = effect
 		const style = new PIXI.TextStyle({
 			...props,
 			//@ts-ignore
@@ -83,6 +133,16 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 		})
 
 		const text = new PIXI.Text(props.text, style)
+
+		// Handle RTL text direction if using UthmanicHafs or other RTL fonts
+		if (props.fontFamily === 'Uthmanic Hafs') {
+			text.style.align = 'right'
+			// Set direction for RTL text rendering
+			text.style.fontStyle = 'normal'
+			//@ts-ignore - Add RTL text direction property
+			text.style.direction = 'rtl'
+		}
+
 		text.eventMode = "static"
 		text.cursor = "pointer"
 		text.x = rect.position_on_canvas.x
@@ -109,9 +169,9 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 			this.compositor.canvasElementDrag.onDragStart(e, text, transformer)
 			this.compositor.app.stage.addChild(transformer)
 		})
-		;(text as any).effect = { ...effect }
-		this.set(effect.id, {sprite: text, transformer})
-		if(recreate) {return}
+			; (text as any).effect = { ...effect }
+		this.set(effect.id, { sprite: text, transformer })
+		if (recreate) { return }
 		this.actions.add_text_effect(effect)
 		//@ts-ignore
 		text.updateText()
@@ -119,7 +179,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 
 	add_text_to_canvas(effect: TextEffect) {
 		const text = this.get(effect.id)
-		if(text) {
+		if (text) {
 			this.compositor.app.stage.addChild(text.sprite)
 			text.sprite.zIndex = omnislate.context.state.tracks.length - effect.track
 			text.transformer.zIndex = omnislate.context.state.tracks.length - effect.track
@@ -128,7 +188,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 
 	remove_text_from_canvas(effect: TextEffect) {
 		const text = this.get(effect.id)
-		if(text) {
+		if (text) {
 			this.compositor.app.stage.removeChild(text.transformer)
 			this.compositor.app.stage.removeChild(text.sprite)
 		}
@@ -146,7 +206,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_font_variant = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const variant = (event.target as HTMLSelectElement).value as TextStyleFontVariant
 			this.actions.set_font_variant(this.#selected, variant)
 			const text = this.get(this.#selected.id)?.sprite
@@ -155,7 +215,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_font_weight = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const weight = (event.target as HTMLSelectElement).value as TextStyleFontWeight
 			this.actions.set_font_weight(this.#selected, weight)
 			const text = this.get(this.#selected.id)?.sprite
@@ -164,7 +224,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_text_font = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const font = (event.target as HTMLSelectElement).value.replace(/-/g, ' ')
 			this.actions.set_text_font(this.#selected, font)
 			const text = this.get(this.#selected.id)?.sprite
@@ -173,7 +233,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_font_size = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const size = +(event.target as HTMLSelectElement).value
 			this.actions.set_font_size(this.#selected, size)
 			const text = this.get(this.#selected.id)?.sprite
@@ -183,7 +243,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_font_style = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const style = (event.target as HTMLSelectElement).value as TextStyleFontStyle
 			this.actions.set_font_style(this.#selected, style)
 			const text = this.get(this.#selected.id)?.sprite
@@ -192,7 +252,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_text_align = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const align = (event.target as HTMLSelectElement).value as TextStyleAlign
 			this.actions.set_font_align(this.#selected, align)
 			const text = this.get(this.#selected.id)?.sprite
@@ -201,11 +261,11 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_fill = (event: Event, index: number) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const color = (event.target as HTMLSelectElement).value
 			this.actions.set_text_fill(this.#selected, color, index)
 			const text = this.get(this.#selected.id)?.sprite
-			if(text!.style.fill instanceof Array) {
+			if (text!.style.fill instanceof Array) {
 				//@ts-ignore
 				text!.style.fill[index] = color
 				//@ts-ignore
@@ -220,7 +280,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_drop_shadow_color = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const text = this.get(this.#selected.id)?.sprite!
 			const value = (event.target as HTMLInputElement).value
 			this.actions.set_drop_shadow_color(this.#selected, value)
@@ -232,7 +292,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_drop_shadow_alpha = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = +(event.target as HTMLInputElement).value
 			this.actions.set_drop_shadow_alpha(this.#selected, value)
 			const text = this.get(this.#selected.id)?.sprite!
@@ -244,7 +304,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_drop_shadow_angle = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = +(event.target as HTMLInputElement).value
 			this.actions.set_drop_shadow_angle(this.#selected, value)
 			const text = this.get(this.#selected.id)?.sprite!
@@ -256,7 +316,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_drop_shadow_blur = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = +(event.target as HTMLInputElement).value
 			this.actions.set_drop_shadow_blur(this.#selected, value)
 			const text = this.get(this.#selected.id)?.sprite!
@@ -268,7 +328,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_drop_shadow_distance = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = +(event.target as HTMLInputElement).value
 			this.actions.set_drop_shadow_distance(this.#selected, value)
 			const text = this.get(this.#selected.id)?.sprite!
@@ -280,7 +340,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	toggle_drop_shadow = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = (event.target as HTMLInputElement).checked
 			const text = this.get(this.#selected.id)?.sprite!
 			text.style.dropShadow = value
@@ -291,7 +351,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_word_wrap = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = (event.target as HTMLInputElement).checked
 			const text = this.get(this.#selected.id)?.sprite!
 			this.actions.set_word_wrap(this.#selected, value)
@@ -302,7 +362,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_break_words = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = (event.target as HTMLInputElement).checked
 			const text = this.get(this.#selected.id)?.sprite!
 			this.actions.set_break_words(this.#selected, value)
@@ -313,7 +373,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_leading = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = +(event.target as HTMLInputElement).value
 			const text = this.get(this.#selected.id)?.sprite!
 			this.actions.set_leading(this.#selected, value)
@@ -324,7 +384,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_line_height = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = +(event.target as HTMLInputElement).value
 			const text = this.get(this.#selected.id)?.sprite!
 			this.actions.set_line_height(this.#selected, value)
@@ -335,7 +395,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_wrap_width = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = +(event.target as HTMLInputElement).value
 			const text = this.get(this.#selected.id)?.sprite!
 			this.actions.set_wrap_width(this.#selected, value)
@@ -346,7 +406,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_white_space = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = (event.target as HTMLSelectElement).value as TextStyleWhiteSpace
 			const text = this.get(this.#selected.id)?.sprite!
 			this.actions.set_white_space(this.#selected, value)
@@ -357,10 +417,10 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	move_fill_down(index: number) {
-		if(this.#selected) {
+		if (this.#selected) {
 			const text = this.get(this.#selected.id)?.sprite!
-			if(text.style.fill instanceof Array) {
-				if (index >= text.style.fill.length - 1) {return}
+			if (text.style.fill instanceof Array) {
+				if (index >= text.style.fill.length - 1) { return }
 				this.actions.move_text_fill_down(this.#selected, index);
 				[text.style.fill[index], text.style.fill[index + 1]] = [text.style.fill[index + 1], text.style.fill[index]];
 				[this.textDefaultStyles.fill[index], this.textDefaultStyles.fill[index + 1]] = [this.textDefaultStyles.fill[index + 1], this.textDefaultStyles.fill[index]]
@@ -371,10 +431,10 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	move_fill_up(index: number) {
-		if(this.#selected) {
+		if (this.#selected) {
 			const text = this.get(this.#selected.id)?.sprite!
 			if (index <= 0) return
-			if(text.style.fill instanceof Array) {
+			if (text.style.fill instanceof Array) {
 				this.actions.move_text_fill_up(this.#selected, index);
 				[text.style.fill[index - 1], text.style.fill[index]] = [text.style.fill[index], text.style.fill[index - 1]];
 				[this.textDefaultStyles.fill[index - 1], this.textDefaultStyles.fill[index]] = [this.textDefaultStyles.fill[index], this.textDefaultStyles.fill[index - 1]];
@@ -385,7 +445,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_text_content = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const content = (event.target as HTMLSelectElement).value
 			this.actions.set_text_content(this.#selected, content)
 			const text = this.get(this.#selected.id)?.sprite
@@ -395,7 +455,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_fill_gradient_type = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const type = +(event.target as HTMLSelectElement).value as TEXT_GRADIENT
 			this.actions.set_fill_gradient_type(this.#selected, type)
 			const text = this.get(this.#selected.id)?.sprite
@@ -405,7 +465,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	add_fill_gradient_stop = () => {
-		if(this.#selected) {
+		if (this.#selected) {
 			this.actions.add_fill_gradient_stop(this.#selected)
 			const text = this.get(this.#selected.id)?.sprite
 			//@ts-ignore
@@ -417,7 +477,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	remove_fill_gradient_stop = (index: number) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			this.actions.remove_fill_gradient_stop(this.#selected, index)
 			const text = this.get(this.#selected.id)?.sprite
 			//@ts-ignore
@@ -429,7 +489,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_fill_gradient_stop = (event: Event, index: number) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const value = +(event.target as HTMLSelectElement).value
 			this.actions.set_fill_gradient_stop(this.#selected, index, value)
 			const text = this.get(this.#selected.id)?.sprite
@@ -442,10 +502,10 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	add_fill = () => {
-		if(this.#selected) {
+		if (this.#selected) {
 			this.actions.add_text_fill(this.#selected)
 			const text = this.get(this.#selected.id)?.sprite!
-			if(text.style.fill instanceof Array) {
+			if (text.style.fill instanceof Array) {
 				//@ts-ignore
 				text.style.fill = [...text.style.fill, "#FFFFFF"]
 			} else {
@@ -457,7 +517,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	remove_fill = (index: number) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			this.actions.remove_text_fill(this.#selected, index)
 			const text = this.get(this.#selected.id)?.sprite
 			//@ts-ignore
@@ -467,7 +527,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_stroke_color = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const text = this.get(this.#selected.id)?.sprite!
 			const value = (event.target as HTMLSelectElement).value
 			text.style.stroke = value
@@ -476,7 +536,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_stroke_thickness = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const text = this.get(this.#selected.id)?.sprite!
 			const value = +(event.target as HTMLSelectElement).value
 			//@ts-ignore
@@ -486,7 +546,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_stroke_line_join = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const text = this.get(this.#selected.id)?.sprite!
 			const value = (event.target as HTMLSelectElement).value as LineJoin
 			//@ts-ignore
@@ -496,7 +556,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_stroke_miter_limit = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const text = this.get(this.#selected.id)?.sprite!
 			const value = +(event.target as HTMLSelectElement).value
 			//@ts-ignore
@@ -506,7 +566,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_letter_spacing = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const text = this.get(this.#selected.id)?.sprite!
 			const value = +(event.target as HTMLSelectElement).value
 			text.style.letterSpacing = value
@@ -515,7 +575,7 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_text_baseline = (event: Event) => {
-		if(this.#selected) {
+		if (this.#selected) {
 			const text = this.get(this.#selected.id)?.sprite!
 			const value = (event.target as HTMLSelectElement).value as TextStyleTextBaseline
 			text.style.textBaseline = value
@@ -524,8 +584,8 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	set_selected_effect(effect: TextEffect | null) {
-		if(effect) {
-			this.#selected = {...effect}
+		if (effect) {
+			this.#selected = { ...effect }
 		} else this.#selected = null
 	}
 
@@ -548,45 +608,65 @@ export class TextManager extends Map<string, {sprite: PIXI.Text, transformer: PI
 	}
 
 	destroy() {
-		if(this.#setPermissionStatus) {
+		if (this.#setPermissionStatus) {
 			this.#permissionStatus?.removeEventListener("change", this.#setPermissionStatus)
 		}
 	}
 
 	async getFonts(onPermissionStateChange: (state: PermissionState, deniedStateText: string, fonts?: FontMetadata[]) => void): Promise<FontMetadata[]> {
-		//@ts-ignore
-		const permissionStatus = this.#permissionStatus = await navigator.permissions.query({ name: 'local-fonts' })
-		const deniedStateText = "To enable local fonts, go to browser settings > site permissions, and allow fonts for this site."
-		const setStatus = this.#setPermissionStatus = async () => {
-			if(permissionStatus.state === "granted") {
-				const fonts = await window.queryLocalFonts()
-				onPermissionStateChange(permissionStatus.state, "", fonts)
-			} else if (permissionStatus.state === "denied") {
-				onPermissionStateChange(permissionStatus.state, deniedStateText)
-			}
-		}
-		return new Promise((resolve, reject) => {
-			if ('permissions' in navigator && 'queryLocalFonts' in window) {
-				async function checkFontAccess() {
-					try {
-						permissionStatus.addEventListener("change", setStatus)
-						if (permissionStatus.state === 'granted') {
-							const fonts = await window.queryLocalFonts()
-							resolve(fonts)
-						} else if (permissionStatus.state === "prompt") {
-							reject("User needs to grant permission for local fonts.")
-						} else if(permissionStatus.state === "denied") {
-							reject(deniedStateText)
-						}
-					} catch (err) {
-						reject(err)
-					}
+		// Always return our custom fonts
+		const customFonts = [...this.#customFonts]
+
+		try {
+			//@ts-ignore
+			const permissionStatus = this.#permissionStatus = await navigator.permissions.query({ name: 'local-fonts' })
+			const deniedStateText = "To enable local fonts, go to browser settings > site permissions, and allow fonts for this site."
+			const setStatus = this.#setPermissionStatus = async () => {
+				if (permissionStatus.state === "granted") {
+					const fonts = await window.queryLocalFonts()
+					// Combine system fonts with our custom fonts
+					const allFonts = [...customFonts, ...fonts]
+					onPermissionStateChange(permissionStatus.state, "", allFonts)
+				} else if (permissionStatus.state === "denied") {
+					onPermissionStateChange(permissionStatus.state, deniedStateText, customFonts)
 				}
-				checkFontAccess()
-			} else {
-				reject("Local Font Access API is not supported in this browser.")
 			}
-		})
+
+			return new Promise((resolve, reject) => {
+				if ('permissions' in navigator && 'queryLocalFonts' in window) {
+					async function checkFontAccess() {
+						try {
+							permissionStatus.addEventListener("change", setStatus)
+							if (permissionStatus.state === 'granted') {
+								const fonts = await window.queryLocalFonts()
+								// Combine system fonts with our custom fonts
+								resolve([...customFonts, ...fonts])
+							} else if (permissionStatus.state === "prompt") {
+								// Return custom fonts while waiting for permission
+								resolve(customFonts)
+								reject("User needs to grant permission for local fonts.")
+							} else if (permissionStatus.state === "denied") {
+								// Return at least custom fonts when denied
+								resolve(customFonts)
+								reject(deniedStateText)
+							}
+						} catch (err) {
+							// Return custom fonts on error
+							resolve(customFonts)
+							reject(err)
+						}
+					}
+					checkFontAccess()
+				} else {
+					// API not supported, return custom fonts
+					resolve(customFonts)
+					reject("Local Font Access API is not supported in this browser.")
+				}
+			})
+		} catch (error) {
+			// Return custom fonts in case of errors
+			return Promise.resolve(customFonts)
+		}
 	}
 }
 
