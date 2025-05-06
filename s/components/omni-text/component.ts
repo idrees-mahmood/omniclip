@@ -98,8 +98,8 @@ export const OmniText = shadow_component(use => {
 				`)}
 				</sl-select>
 				<sl-input @sl-change=${manager.set_wrap_width} type="number" step="10" min="0" value=${selectedText?.wordWrapWidth ?? "100"} label="Wrap Width" size="small"></sl-input>
-				<sl-input @sl-change=${manager.set_line_height} type="number" step="1" min="0" value==${selectedText?.lineHeight ?? "0"} label="Line Height" size="small"></sl-input>
-				<sl-input @sl-change=${manager.set_leading} type="number" step="1" min="0" value==${selectedText?.leading ?? "0"} label="Leading" size="small"></sl-input>
+				<sl-input @sl-change=${manager.set_line_height} type="number" step="1" min="0" value=${selectedText?.lineHeight ?? "0"} label="Line Height" size="small"></sl-input>
+				<sl-input @sl-change=${manager.set_leading} type="number" step="1" min="0" value=${selectedText?.leading ?? "0"} label="Leading" size="small"></sl-input>
 			</div>
 		`
 	}
@@ -113,9 +113,7 @@ export const OmniText = shadow_component(use => {
 						${(selectedText?.fill ?? manager.textDefaultStyles.fill).map((fill, i) => html`
 							<div class=flex>
 								<sl-input @sl-change=${(e: Event) => manager.set_fill(e, i)} size="small" type="color" id="color" name="color" .value=${fill}></sl-input>
-								${(selectedText?.fill ?? manager.textDefaultStyles.fill).length > 1
-				? html`
-										${i === 0
+								${(selectedText?.fill ?? manager.textDefaultStyles.fill).length > 1 ? html`${i === 0
 						? html`<button @click=${() => manager.move_fill_down(i)}>${arrowdownSvg}</button>`
 						: i === manager.textDefaultStyles.fill.length - 1
 							? html`<button @click=${() => manager.move_fill_up(i)}>${arrowupSvg}</button>`
