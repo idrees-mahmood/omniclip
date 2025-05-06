@@ -1,15 +1,15 @@
-import {Op, html} from "@benev/slate"
+import { Op, html } from "@benev/slate"
 
-import {styles} from "./styles.js"
-import {TextEffect} from "../../context/types.js"
-import {FontMetadata} from "../../context/global.js"
+import { styles } from "./styles.js"
+import { TextEffect } from "../../context/types.js"
+import { FontMetadata } from "../../context/global.js"
 import addSvg from "../../icons/gravity-ui/add.svg.js"
-import {shadow_component} from "../../context/context.js"
+import { shadow_component } from "../../context/context.js"
 import xMarkSvg from "../../icons/gravity-ui/x-mark.svg.js"
-import {StateHandler} from "../../views/state-handler/view.js"
+import { StateHandler } from "../../views/state-handler/view.js"
 import arrowupSvg from "../../icons/gravity-ui/arrowup.svg.js"
 import arrowdownSvg from "../../icons/gravity-ui/arrowdown.svg.js"
-import {convert_ms_to_hms} from "../omni-timeline/views/time-ruler/utils/convert_ms_to_hms.js"
+import { convert_ms_to_hms } from "../omni-timeline/views/time-ruler/utils/convert_ms_to_hms.js"
 
 export const OmniText = shadow_component(use => {
 	use.styles(styles)
@@ -24,7 +24,7 @@ export const OmniText = shadow_component(use => {
 		try {
 			const fonts = await manager.getFonts((status, deniedStateText, fonts) => {
 				// listener for changes in permission
-				if(status === "denied") {
+				if (status === "denied") {
 					setFontsDenied(deniedStateText)
 					setFonts([])
 				} else if (status === "granted") {
@@ -60,8 +60,13 @@ export const OmniText = shadow_component(use => {
 					size="small"
 				>
 				</sl-input>
-				<sl-select @sl-change=${manager.set_text_font} value=${selectedText?.fontFamily ?? "Arial"} label="Family" size="small">
-					${getBaseFonts(fonts).map(font => html`<sl-option value=${font.family.replace(/\s+/g, '-')}>${font.family}</sl-option>`)}
+				<sl-select
+					@sl-change=${manager.set_text_font}
+					value=${selectedText?.fontFamily ? selectedText.fontFamily.replace(/\s+/g, '-') : "Arial"}
+					label="Family"
+					size="small"
+				>
+  				${getBaseFonts(fonts).map(font => html`<sl-option value=${font.family.replace(/\s+/g, '-')}>${font.family}</sl-option>`)}
 				</sl-select>
 				<sl-select @sl-change=${manager.set_font_style} value=${selectedText?.fontStyle ?? "normal"} label="Style" size="small">
 					${manager.textDefaultStyles.style.map(style => html`<sl-option value=${style}>${style}</sl-option>`)}
@@ -109,19 +114,19 @@ export const OmniText = shadow_component(use => {
 							<div class=flex>
 								<sl-input @sl-change=${(e: Event) => manager.set_fill(e, i)} size="small" type="color" id="color" name="color" .value=${fill}></sl-input>
 								${(selectedText?.fill ?? manager.textDefaultStyles.fill).length > 1
-									? html`
+				? html`
 										${i === 0
-											? html`<button @click=${() => manager.move_fill_down(i)}>${arrowdownSvg}</button>`
-											: i === manager.textDefaultStyles.fill.length - 1
-												? html`<button @click=${() => manager.move_fill_up(i)}>${arrowupSvg}</button>`
-												: html`
+						? html`<button @click=${() => manager.move_fill_down(i)}>${arrowdownSvg}</button>`
+						: i === manager.textDefaultStyles.fill.length - 1
+							? html`<button @click=${() => manager.move_fill_up(i)}>${arrowupSvg}</button>`
+							: html`
 													<button @click=${() => manager.move_fill_down(i)}>${arrowdownSvg}</button>
 													<button @click=${() => manager.move_fill_up(i)}>${arrowupSvg}</button>
 										`}
 										<button @click=${() => manager.remove_fill(i)}>${xMarkSvg}</button>
 										`
-									: null
-								}
+				: null
+			}
 							</div>
 						`)}
 						<sl-button size="small" class="add-color-btn" @click=${manager.add_fill}>
@@ -248,10 +253,10 @@ export const OmniText = shadow_component(use => {
 		<div class="examples">
 			<sl-select
 				@sl-change=${(e: Event) => {
-					const id = (e.target as HTMLSelectElement).value
-					const effect = use.context.state.effects.find(e => e.id === id)
-					use.context.controllers.timeline.set_selected_effect(effect, use.context.state)
-				}}
+				const id = (e.target as HTMLSelectElement).value
+				const effect = use.context.state.effects.find(e => e.id === id)
+				use.context.controllers.timeline.set_selected_effect(effect, use.context.state)
+			}}
 				placeholder="no text selected"
 				value=${selectedText?.id}
 				class="select-text" label="Select text" help-text="Select text to edit or add if none" size="small"
