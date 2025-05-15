@@ -31,6 +31,8 @@ import {MediaPlayerPanel} from "./components/omni-timeline/views/media-player/pa
 import {ExportConfirmModal, ExportInProgressOverlay} from './components/omni-timeline/views/export/view.js'
 import {OmniSubtitles} from "./components/omni-subtitles/component.js"
 import {SubtitlesPanel} from "./components/omni-subtitles/panel.js"
+import {OmniQuranSubtitles} from "./components/omni-quran-subtitles/component.js"
+import {QuranSubtitlesPanel} from "./components/omni-quran-subtitles/panel.js"
 
 posthog.init('phc_CMbHMWGVJSqM1RqGyGxWCyqgaSGbGFKl964fIN3NDwU',
 	{
@@ -55,7 +57,8 @@ export function setupContext(projectId: string) {
 			AnimPanel,
 			FiltersPanel,
 			TransitionsPanel,
-			SubtitlesPanel
+			SubtitlesPanel,
+			QuranSubtitlesPanel
 		},
 		layouts: {
 			empty: single_panel_layout("TimelinePanel"),
@@ -149,7 +152,7 @@ const router = new HashRouter({
 			collaboration.disconnect()
 		}
 		if(!registered) {
-			register_to_dom({OmniTimeline, OmniText, OmniMedia, ConstructEditor, OmniFilters, OmniTransitions, OmniAnim, OmniSubtitles})
+			register_to_dom({OmniTimeline, OmniText, OmniMedia, ConstructEditor, OmniFilters, OmniTransitions, OmniAnim, OmniSubtitles, OmniQuranSubtitles})
 			registered = true
 		}
 		const omnislate = setupContext(projectId)

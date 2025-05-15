@@ -4,7 +4,7 @@
 - **Name**: Omniclip
 - **Purpose**: Open-source browser-based video editor
 - **Core Philosophy**: Client-side video editing with no server dependencies
-- **Features**: Timeline editing, media management, transitions, effects, filters, animations, real-time collaboration
+- **Features**: Timeline editing, media management, transitions, effects, filters, animations, real-time collaboration, Quran subtitle generation
 - **Key Differentiator**: Runs entirely in browser using WebCodecs for high performance
 
 ## ARCHITECTURE
@@ -58,6 +58,7 @@
 - `omni-transitions`: Transition effects between clips
 - `omni-anim`: Animation effects for media
 - `omni-subtitles`: Subtitle management
+- `omni-quran-subtitles`: Automatic generation of subtitles for Quran recitations
 - `omni-manager`: Project management UI
 
 ### UI Framework
@@ -266,6 +267,36 @@
 - Keyframe animation system
 - More transitions and effects
 - Performance optimizations
+- Enhanced Quran subtitle generation with more language options
+
+## QURAN SUBTITLE GENERATION
+
+### Implementation
+- Extracts audio from selected video/audio clips using WebCodecs and FFmpeg
+- Sends audio to external API for Quran ayah matching
+- Creates synchronized subtitle entries from matched ayahs
+- Arabic text with RTL support using Uthmanic Hafs font
+- User interface for selecting surah and ayah ranges
+
+### API Integration
+- Connects to external Quran matching API
+- Sends audio file and metadata via multipart/form-data
+- Receives timestamped ayah matches for subtitle generation
+- Uses CORS for secure cross-origin communication
+
+### Usage Flow
+1. User selects video/audio clip on timeline
+2. User enters surah number and optional ayah range
+3. System extracts audio and sends to API
+4. API returns matched ayahs with timestamps
+5. System generates subtitle text effects on timeline
+
+### Technical Details
+- Uses FFmpegHelper for audio extraction
+- Processes audio in-browser
+- Converts API response to subtitle entries
+- Leverages existing subtitle manager for track management
+- Error handling for API failures and extraction issues
 
 ## KNOWN LIMITATIONS
 

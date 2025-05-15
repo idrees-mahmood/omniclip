@@ -14,6 +14,8 @@ export interface SubtitleEntry {
         fill?: string[]
         stroke?: string
         strokeThickness?: number
+        lineHeight?: number
+        wordWrapWidth?: number
     }
 }
 
@@ -22,11 +24,26 @@ export class SubtitleManager {
 
     /**
      * Add multiple subtitles to the timeline
+     * @param subtitles The subtitle entries to add
+     * @param state The current application state
+     * @param preferredTrack Optional track number to place subtitles directly above (on preferredTrack + 1)
      */
-    addSubtitles(subtitles: SubtitleEntry[], state: State): TextEffect[] {
-        // Find a good track for subtitles (use the highest track + 1)
-        const usedTracks = state.effects.map(effect => effect.track)
-        const track = usedTracks.length > 0 ? Math.max(...usedTracks) + 1 : 0
+    addSubtitles(subtitles: SubtitleEntry[], state: State, preferredTrack?: number): TextEffect[] {
+        // Find a good track for subtitles
+        // If preferredTrack is provided, use preferredTrack + 1
+        // Otherwise use the highest track + 1
+        let track: number;
+        
+        if (preferredTrack !== undefined) {
+            // Use the track above the preferred track
+            track = preferredTrack + 1;
+            console.log(`[SubtitleManager] Using track ${track} (preferred track ${preferredTrack} + 1)`)
+        } else {
+            // Default behavior: use the highest track + 1
+            const usedTracks = state.effects.map(effect => effect.track)
+            track = usedTracks.length > 0 ? Math.max(...usedTracks) + 1 : 0
+            console.log(`[SubtitleManager] Using highest available track ${track}`)
+        }
 
         // Ensure we have enough tracks
         if (track >= state.tracks.length) {
@@ -86,9 +103,9 @@ export class SubtitleManager {
             dropShadowDistance: 2,
             breakWords: false,
             wordWrap: true,
-            lineHeight: 0,
+            lineHeight: subtitle.style?.lineHeight ?? 0,
             leading: 0,
-            wordWrapWidth: 500,
+            wordWrapWidth: subtitle.style?.wordWrapWidth ?? 500,
             whiteSpace: "pre",
             align: "center",
 
