@@ -30,12 +30,16 @@ export class SubtitleManager {
      */
     addSubtitles(subtitles: SubtitleEntry[], state: State, preferredTrack?: number): TextEffect[] {
         // Find a good track for subtitles
-        // If preferredTrack is provided, use preferredTrack + 1
-        // Otherwise use the highest track + 1
+        // IMPORTANT NOTE: Track indices are 0-based, but are rendered in reverse order
+        // Track 0 appears at the TOP of the timeline visually
+        // Higher track numbers appear LOWER in the visual stack
+        // zIndex = tracks.length - track (inverted for visual display)
+        
         let track: number;
         
         if (preferredTrack !== undefined) {
             // Use the track above the preferred track
+            // Since tracks are visually inverted, track+1 will appear BELOW the preferred track
             track = preferredTrack + 1;
             console.log(`[SubtitleManager] Using track ${track} (preferred track ${preferredTrack} + 1)`)
         } else {
@@ -47,10 +51,19 @@ export class SubtitleManager {
 
         // Ensure we have enough tracks
         if (track >= state.tracks.length) {
+            console.log(`[SubtitleManager] Need to add tracks (current: ${state.tracks.length}, needed: ${track + 1})`)
             for (let i = state.tracks.length; i <= track; i++) {
                 // Add tracks if needed
                 omnislate.context.actions.add_track()
             }
+            // Verify tracks were added
+            console.log(`[SubtitleManager] After adding tracks: ${state.tracks.length} tracks available`)
+        }
+
+        // Verify the track exists in state
+        if (track >= state.tracks.length) {
+            console.error(`[SubtitleManager] Failed to add enough tracks. Using highest available track ${state.tracks.length - 1}`)
+            track = state.tracks.length - 1
         }
 
         // Create and add subtitles
@@ -62,7 +75,20 @@ export class SubtitleManager {
             addedEffects.push(effect)
         }
 
+        console.log(`[SubtitleManager] Added ${addedEffects.length} subtitles on track ${track}`)
         return addedEffects
+    }
+
+    /**
+     * Get the visual position of a track on the timeline
+     * @param trackIndex The internal track index
+     * @param totalTracks The total number of tracks
+     * @returns The visual position (0 is top, higher numbers go down)
+     */
+    getVisualTrackPosition(trackIndex: number, totalTracks: number): number {
+        // In the UI, track 0 is at the top, higher numbers go down
+        // But for zIndex/layering, track 0 appears at the bottom of the visual stack
+        return totalTracks - 1 - trackIndex;
     }
 
     // Creates the effects for a subtitle using the text-manager
@@ -106,7 +132,7 @@ export class SubtitleManager {
             lineHeight: subtitle.style?.lineHeight ?? 0,
             leading: 0,
             wordWrapWidth: subtitle.style?.wordWrapWidth ?? 500,
-            whiteSpace: "pre",
+            whiteSpace: "normal",
             align: "center",
 
             // Position at bottom center of screen

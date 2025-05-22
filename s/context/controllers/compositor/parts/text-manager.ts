@@ -136,7 +136,8 @@ export class TextManager extends Map<string, { sprite: PIXI.Text, transformer: P
 
 		// Handle RTL text direction if using UthmanicHafs or other RTL fonts
 		if (props.fontFamily === 'Uthmanic Hafs') {
-			text.style.align = 'right'
+			// Keep the specified alignment but set direction to RTL
+			// text.style.align = 'right'
 			// Set direction for RTL text rendering
 			text.style.fontStyle = 'normal'
 			//@ts-ignore - Add RTL text direction property
@@ -181,6 +182,9 @@ export class TextManager extends Map<string, { sprite: PIXI.Text, transformer: P
 		const text = this.get(effect.id)
 		if (text) {
 			this.compositor.app.stage.addChild(text.sprite)
+			// IMPORTANT: Track indices are inverted for visual rendering
+			// track 0 appears at the TOP of the timeline but the BOTTOM of the visual stack
+			// Formula: zIndex = tracks.length - effect.track
 			text.sprite.zIndex = omnislate.context.state.tracks.length - effect.track
 			text.transformer.zIndex = omnislate.context.state.tracks.length - effect.track
 		}

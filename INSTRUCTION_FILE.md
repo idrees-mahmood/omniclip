@@ -272,31 +272,85 @@
 ## QURAN SUBTITLE GENERATION
 
 ### Implementation
-- Extracts audio from selected video/audio clips using WebCodecs and FFmpeg
+- Extracts audio from selected video/audio clips using WebCodecs and FFmpeg (WASM)
 - Sends audio to external API for Quran ayah matching
 - Creates synchronized subtitle entries from matched ayahs
 - Arabic text with RTL support using Uthmanic Hafs font
-- User interface for selecting surah and ayah ranges
+- User interface for selecting surah and ayah ranges and customizing text appearance
+- Supports text positioning, font size adjustment, and word wrap settings
+- Environment variable support for backend URL configuration with fallbacks
 
 ### API Integration
-- Connects to external Quran matching API
+- Connects to external Quran matching API (configurable via VITE_BACKEND_URL)
 - Sends audio file and metadata via multipart/form-data
 - Receives timestamped ayah matches for subtitle generation
 - Uses CORS for secure cross-origin communication
+- Handles various response formats and error conditions
 
 ### Usage Flow
 1. User selects video/audio clip on timeline
 2. User enters surah number and optional ayah range
-3. System extracts audio and sends to API
+3. System extracts audio and sends to API with progress indicators
 4. API returns matched ayahs with timestamps
 5. System generates subtitle text effects on timeline
+6. User can customize appearance settings for created subtitles
 
 ### Technical Details
-- Uses FFmpegHelper for audio extraction
-- Processes audio in-browser
-- Converts API response to subtitle entries
+- Uses FFmpegHelper for audio extraction through WASM
+- Processes audio in-browser for privacy and efficiency
+- Converts API response to subtitle entries with proper timestamps
 - Leverages existing subtitle manager for track management
-- Error handling for API failures and extraction issues
+- Comprehensive error handling for API failures and extraction issues
+- Visual progress indicators for each stage of the process
+
+## QURAN SUBTITLE TECHNICAL IMPLEMENTATION
+
+### Component Structure
+- `s/components/omni-quran-subtitles/component.ts`: Main component logic
+- `s/components/omni-quran-subtitles/styles.ts`: Component styling
+- `s/components/omni-quran-subtitles/panel.ts`: Layout integration
+
+### Key Features
+- **Audio Extraction**: Utilizes FFmpeg WASM to extract audio from video clips
+- **Timestamp Parsing**: Handles SRT format timestamps (00:01:23,456) and numerical seconds
+- **Subtitle Positioning**: 9-point positioning system (top/middle/bottom + left/center/right)
+- **Text Customization**: Font size, word wrap width, and position controls
+- **Multi-track Support**: Manages text effects across multiple timeline tracks
+- **Visual Feedback**: Progress indicators and detailed status messages
+- **Error Handling**: Comprehensive error detection and user-friendly messages
+
+### State Management
+- Uses component-level state for UI controls and processing status
+- Tracks where subtitles are created for later editing
+- Maintains list of all tracks containing text effects
+- Uses context actions for making changes to text effects
+
+### Track Management
+- Subtitles are placed on a dedicated track, typically above the selected media track
+- Text effects store their track number for later manipulation
+- UI allows selecting which track to apply changes to
+- Track selection can be done via UI or by selecting text on timeline
+
+### Text Positioning and Styling
+- Configurable text position using pivot points and canvas coordinates
+- Font size adjustments with immediate visual feedback
+- Word wrap width control for text flow management
+- Applies styling changes to all text effects on a selected track
+- Canvas refresh system to ensure changes are immediately visible
+
+### Error and Edge Cases
+- Handles API connectivity failures
+- Manages FFmpeg initialization errors
+- Validates input parameters before processing
+- Handles empty or invalid API responses
+- Provides fallbacks for missing environment variables
+
+### Future Improvements
+- Layer management to ensure subtitles appear above video content
+- Enhanced styling options including fill, stroke, and drop shadow properties
+- Dynamic attribute editing with dropdown menus
+- Proper RTL text alignment with center positioning
+- Fixing track numbering system mismatches
 
 ## KNOWN LIMITATIONS
 
@@ -336,3 +390,36 @@
 - Browser console logging
 - State inspection via browser devtools
 - Performance monitoring tools 
+
+
+## Features to implement
+
+### Quran subtitles
+- ✅ Improve the styling of the attribute editing into a dynamic dropdown to make the UI less clustered for the user
+- ✅ Add the ability to change all font, multiline, fill, stroke and drop shadow properties, mimiicing the functionality of omni text, except we apply the settings to all text. THis is on top of the positioning functionality
+- ✅ Text defaults to RTL despite a text align default to center. Center should be the correct behaivour
+- Fix canvas rendering issues for font colour, wrap width etc
+- ✅ Add line height to the position and size section
+- ✅ Debug track numbering system, there seems to be a mismatch between the actual track number and the internal track number
+
+## TRACK NUMBERING SYSTEM
+
+### Track Indexing
+- Tracks are 0-indexed in the internal state
+- Track 0 appears at the TOP of the timeline visually
+- Higher track numbers appear LOWER in the timeline visually
+- For layering/rendering purposes, the zIndex is calculated as: `zIndex = tracks.length - effect.track`
+- This means track 0 has the LOWEST rendering priority (appears at the bottom of the visual stack)
+
+### Implementation Details
+- Track indices are used consistently across the codebase but inverted for visual rendering
+- The SubtitleManager has a helper method `getVisualTrackPosition` to convert between internal track index and visual position
+- Components display both the track index and visual position to avoid confusion
+- Documentation has been added to key methods that handle track indices
+- Error handling has been improved to avoid invalid track numbers
+
+### Usage Notes
+- When selecting a track, the UI shows both track index and position from top
+- When adding new elements, consider whether you want them on top (lower track index) or bottom (higher track index)
+- The SubtitleManager places subtitles on the track above the selected media (preferredTrack + 1)
+- UI components correctly handle the track to zIndex transformation for proper layering 

@@ -190,6 +190,10 @@ export class Compositor {
 	}
 
 	#setEffectsIndexes(effects: AnyEffect[]) {
+		// IMPORTANT: In our layer system, track indices are inverted for visual rendering
+		// Track 0 appears at the TOP of the timeline visually but at the BOTTOM of the visual stack
+		// Higher track numbers appear LOWER in the visual stack, requiring higher zIndex
+		// zIndex = tracks.length - effect.track (inverted for visual display)
 		effects.filter(e => e.kind !== "audio").forEach(e => {
 			const effect = e as ImageEffect | VideoEffect | TextEffect
 			const object = this.getObject(effect)
