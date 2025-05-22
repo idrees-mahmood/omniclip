@@ -398,9 +398,10 @@
 - ✅ Improve the styling of the attribute editing into a dynamic dropdown to make the UI less clustered for the user
 - ✅ Add the ability to change all font, multiline, fill, stroke and drop shadow properties, mimiicing the functionality of omni text, except we apply the settings to all text. THis is on top of the positioning functionality
 - ✅ Text defaults to RTL despite a text align default to center. Center should be the correct behaivour
-- Fix canvas rendering issues for font colour, wrap width etc
+- ✅ Fix canvas rendering issues for font colour, wrap width etc
 - ✅ Add line height to the position and size section
 - ✅ Debug track numbering system, there seems to be a mismatch between the actual track number and the internal track number
+- ✅ Positioning for centering the text is calculated off the left of the text box, instead try to calculate from the centre of the text
 
 ## TRACK NUMBERING SYSTEM
 

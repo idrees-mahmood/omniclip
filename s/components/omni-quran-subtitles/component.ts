@@ -527,11 +527,41 @@ export const OmniQuranSubtitles = shadow_component(use => {
             // First update the sprite style properties
             textObject.sprite.style.fontSize = effect.fontSize;
             textObject.sprite.style.wordWrapWidth = effect.wordWrapWidth;
+            textObject.sprite.style.lineHeight = effect.lineHeight;
+            
+            // Update fill color
+            if (effect.fill instanceof Array && effect.fill.length > 0) {
+              if (textObject.sprite.style.fill instanceof Array) {
+                textObject.sprite.style.fill[0] = effect.fill[0];
+              } else {
+                textObject.sprite.style.fill = effect.fill[0];
+              }
+            }
+            
+            // Update stroke properties
+            textObject.sprite.style.stroke = effect.stroke;
+            textObject.sprite.style.strokeThickness = effect.strokeThickness;
+            
+            // Update shadow properties
+            textObject.sprite.style.dropShadow = effect.dropShadow;
+            if (effect.dropShadow) {
+              textObject.sprite.style.dropShadowColor = effect.dropShadowColor;
+              textObject.sprite.style.dropShadowDistance = effect.dropShadowDistance;
+              textObject.sprite.style.dropShadowBlur = effect.dropShadowBlur;
+              textObject.sprite.style.dropShadowAlpha = effect.dropShadowAlpha;
+            }
             
             // Then force the text to re-render with updateText()
             try {
               //@ts-ignore - updateText() exists but might not be in typings
               textObject.sprite.updateText();
+              
+              // Fix centering by setting anchor to match pivot for center-aligned text
+              if (effect.align === "center" && effect.rect.pivot.x === 0.5) {
+                // Set anchor to match pivot for proper centering
+                textObject.sprite.anchor.x = 0.5;
+              }
+              
               debug(`Successfully called updateText() on text sprite for effect ${effect.id}`);
             } catch (err) {
               debug(`Error calling updateText() on sprite`, err);
@@ -628,7 +658,26 @@ export const OmniQuranSubtitles = shadow_component(use => {
       try {
         // Use the proper action to update the effect
         use.context.actions.set_text_rect(effect, positionRect);
-        debug(`Position update action called successfully for effect ${effect.id}`);
+        
+        // Directly update the text sprite for immediate visual feedback
+        const textObject = use.context.controllers.compositor.managers.textManager.get(effect.id);
+        if (textObject && textObject.sprite) {
+          // Update position
+          textObject.sprite.x = positionRect.position_on_canvas.x;
+          textObject.sprite.y = positionRect.position_on_canvas.y;
+          
+          // Update pivot
+          textObject.sprite.pivot.set(positionRect.pivot.x, positionRect.pivot.y);
+          
+          // Set anchor to match pivot for proper centering
+          if (effect.align === "center" && positionRect.pivot.x === 0.5) {
+            textObject.sprite.anchor.x = 0.5;
+          } else {
+            textObject.sprite.anchor.x = 0;
+          }
+          
+          debug(`Directly updated sprite position and anchor for effect ${effect.id}`);
+        }
         
         // Verify the update succeeded
         const updatedEffect = use.context.state.effects.find(e => e.id === effect.id) as TextEffect;
@@ -709,7 +758,17 @@ export const OmniQuranSubtitles = shadow_component(use => {
     
     textEffects.forEach(effect => {
       try {
+        // Update state through action
         use.context.actions.set_line_height(effect, height);
+        
+        // Directly update the sprite style and force redraw
+        const textObject = use.context.controllers.compositor.managers.textManager.get(effect.id);
+        if (textObject && textObject.sprite) {
+          textObject.sprite.style.lineHeight = height;
+          //@ts-ignore - updateText() exists but might not be in typings
+          textObject.sprite.updateText();
+          debug(`Updated lineHeight on sprite to ${height} for effect ${effect.id}`);
+        }
       } catch (err) {
         debug(`Error updating line height for effect ${effect.id}`, err);
       }
@@ -776,6 +835,26 @@ export const OmniQuranSubtitles = shadow_component(use => {
           use.context.actions.set_drop_shadow_alpha(effect, dropShadowAlpha);
         }
         
+        // Directly update the text sprite for immediate visual feedback
+        const textObject = use.context.controllers.compositor.managers.textManager.get(effect.id);
+        if (textObject && textObject.sprite) {
+          // Update position and pivot
+          textObject.sprite.x = positionRect.position_on_canvas.x;
+          textObject.sprite.y = positionRect.position_on_canvas.y;
+          textObject.sprite.pivot.set(positionRect.pivot.x, positionRect.pivot.y);
+          
+          // Set anchor to match pivot for proper centering
+          if (textAlign === "center" && positionRect.pivot.x === 0.5) {
+            textObject.sprite.anchor.x = 0.5;
+          } else {
+            textObject.sprite.anchor.x = 0;
+          }
+          
+          // Force text redraw
+          //@ts-ignore - updateText() exists but might not be in typings
+          textObject.sprite.updateText();
+        }
+        
         debug(`All updates applied successfully for effect ${effect.id}`);
       } catch (err) {
         debug(`Error applying settings for effect ${effect.id}`, err);
@@ -807,9 +886,31 @@ export const OmniQuranSubtitles = shadow_component(use => {
     
     textEffects.forEach(effect => {
       try {
+        // Update state through actions
         use.context.actions.set_font_size(effect, fontSize);
         use.context.actions.set_text_font(effect, fontFamily);
         use.context.actions.set_font_align(effect, textAlign as "center" | "left" | "right" | "justify");
+        
+        // Directly update the sprite style and force redraw
+        const textObject = use.context.controllers.compositor.managers.textManager.get(effect.id);
+        if (textObject && textObject.sprite) {
+          // Update font properties
+          textObject.sprite.style.fontSize = fontSize;
+          textObject.sprite.style.fontFamily = fontFamily;
+          textObject.sprite.style.align = textAlign as "center" | "left" | "right" | "justify";
+          
+          // Set anchor to match pivot for proper centering when using center alignment
+          if (textAlign === "center" && effect.rect.pivot.x === 0.5) {
+            textObject.sprite.anchor.x = 0.5;
+          } else {
+            textObject.sprite.anchor.x = 0;
+          }
+          
+          // Force text redraw
+          //@ts-ignore - updateText() exists but might not be in typings
+          textObject.sprite.updateText();
+          debug(`Updated font settings on sprite for effect ${effect.id}`);
+        }
       } catch (err) {
         debug(`Error applying font settings for effect ${effect.id}`, err);
       }
@@ -836,7 +937,21 @@ export const OmniQuranSubtitles = shadow_component(use => {
     
     textEffects.forEach(effect => {
       try {
+        // Update state through action
         use.context.actions.set_text_fill(effect, textFill, 0);
+        
+        // Directly update the sprite style and force redraw
+        const textObject = use.context.controllers.compositor.managers.textManager.get(effect.id);
+        if (textObject && textObject.sprite) {
+          if (textObject.sprite.style.fill instanceof Array) {
+            textObject.sprite.style.fill[0] = textFill;
+          } else {
+            textObject.sprite.style.fill = textFill;
+          }
+          //@ts-ignore - updateText() exists but might not be in typings
+          textObject.sprite.updateText();
+          debug(`Updated fill color on sprite to ${textFill} for effect ${effect.id}`);
+        }
       } catch (err) {
         debug(`Error applying fill settings for effect ${effect.id}`, err);
       }
@@ -863,11 +978,26 @@ export const OmniQuranSubtitles = shadow_component(use => {
     
     textEffects.forEach(effect => {
       try {
+        // Update state through actions
         if (strokeEnabled) {
           use.context.actions.set_stroke_color(effect, strokeColor);
           use.context.actions.set_stroke_thickness(effect, strokeThickness);
         } else {
           use.context.actions.set_stroke_thickness(effect, 0);
+        }
+        
+        // Directly update the sprite style and force redraw
+        const textObject = use.context.controllers.compositor.managers.textManager.get(effect.id);
+        if (textObject && textObject.sprite) {
+          if (strokeEnabled) {
+            textObject.sprite.style.stroke = strokeColor;
+            textObject.sprite.style.strokeThickness = strokeThickness;
+          } else {
+            textObject.sprite.style.strokeThickness = 0;
+          }
+          //@ts-ignore - updateText() exists but might not be in typings
+          textObject.sprite.updateText();
+          debug(`Updated stroke settings on sprite for effect ${effect.id}`);
         }
       } catch (err) {
         debug(`Error applying stroke settings for effect ${effect.id}`, err);
@@ -895,12 +1025,28 @@ export const OmniQuranSubtitles = shadow_component(use => {
     
     textEffects.forEach(effect => {
       try {
+        // Update state through actions
         use.context.actions.toggle_drop_shadow(effect, dropShadowEnabled);
         if (dropShadowEnabled) {
           use.context.actions.set_drop_shadow_color(effect, dropShadowColor);
           use.context.actions.set_drop_shadow_distance(effect, dropShadowDistance);
           use.context.actions.set_drop_shadow_blur(effect, dropShadowBlur);
           use.context.actions.set_drop_shadow_alpha(effect, dropShadowAlpha);
+        }
+        
+        // Directly update the sprite style and force redraw
+        const textObject = use.context.controllers.compositor.managers.textManager.get(effect.id);
+        if (textObject && textObject.sprite) {
+          textObject.sprite.style.dropShadow = dropShadowEnabled;
+          if (dropShadowEnabled) {
+            textObject.sprite.style.dropShadowColor = dropShadowColor;
+            textObject.sprite.style.dropShadowDistance = dropShadowDistance;
+            textObject.sprite.style.dropShadowBlur = dropShadowBlur;
+            textObject.sprite.style.dropShadowAlpha = dropShadowAlpha;
+          }
+          //@ts-ignore - updateText() exists but might not be in typings
+          textObject.sprite.updateText();
+          debug(`Updated shadow settings on sprite for effect ${effect.id}`);
         }
       } catch (err) {
         debug(`Error applying shadow settings for effect ${effect.id}`, err);
