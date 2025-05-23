@@ -383,14 +383,9 @@ export const OmniQuranSubtitles = shadow_component(use => {
 
       setProcessingDetails("Adding subtitles to timeline...")
       
-      // Get the track of the selected effect
-      const selectedEffect = use.context.state.effects.find(e => e.id === selectedEffectId) as VideoEffect | AudioEffect;
-      const selectedTrack = selectedEffect ? selectedEffect.track : 0;
-      debug("Selected effect track", { track: selectedTrack });
-      
-      // Add the subtitles to the timeline, passing the selected track so subtitles can be placed on track+1
-      debug("Calling subtitleManager.addSubtitles with selectedTrack to ensure subtitles appear above video");
-      const addedEffects = subtitleManager.addSubtitles(subtitleEntries, use.context.state, selectedTrack);
+      // Add the subtitles to the timeline, passing the selected effect ID so the video can be moved to ensure proper layering
+      debug("Calling subtitleManager.addSubtitles with selectedEffectId to move video and place subtitles with higher rendering priority");
+      const addedEffects = subtitleManager.addSubtitles(subtitleEntries, use.context.state, selectedEffectId);
       debug("Subtitles added to timeline", {
         count: addedEffects.length,
         trackUsed: addedEffects.length > 0 ? addedEffects[0].track : 'none'
@@ -944,6 +939,7 @@ export const OmniQuranSubtitles = shadow_component(use => {
         const textObject = use.context.controllers.compositor.managers.textManager.get(effect.id);
         if (textObject && textObject.sprite) {
           if (textObject.sprite.style.fill instanceof Array) {
+            //@ts-ignore
             textObject.sprite.style.fill[0] = textFill;
           } else {
             textObject.sprite.style.fill = textFill;
@@ -991,8 +987,10 @@ export const OmniQuranSubtitles = shadow_component(use => {
         if (textObject && textObject.sprite) {
           if (strokeEnabled) {
             textObject.sprite.style.stroke = strokeColor;
+            //@ts-ignore
             textObject.sprite.style.strokeThickness = strokeThickness;
           } else {
+            //@ts-ignore
             textObject.sprite.style.strokeThickness = 0;
           }
           //@ts-ignore - updateText() exists but might not be in typings
@@ -1039,9 +1037,13 @@ export const OmniQuranSubtitles = shadow_component(use => {
         if (textObject && textObject.sprite) {
           textObject.sprite.style.dropShadow = dropShadowEnabled;
           if (dropShadowEnabled) {
+            //@ts-ignore
             textObject.sprite.style.dropShadowColor = dropShadowColor;
+            //@ts-ignore
             textObject.sprite.style.dropShadowDistance = dropShadowDistance;
+            //@ts-ignore
             textObject.sprite.style.dropShadowBlur = dropShadowBlur;
+            //@ts-ignore
             textObject.sprite.style.dropShadowAlpha = dropShadowAlpha;
           }
           //@ts-ignore - updateText() exists but might not be in typings

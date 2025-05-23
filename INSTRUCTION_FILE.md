@@ -402,6 +402,7 @@
 - ✅ Add line height to the position and size section
 - ✅ Debug track numbering system, there seems to be a mismatch between the actual track number and the internal track number
 - ✅ Positioning for centering the text is calculated off the left of the text box, instead try to calculate from the centre of the text
+- ✅ Separate video and text tracks to ensure proper layering - move video to higher track number and place subtitles on lower track number for higher rendering priority
 
 ## TRACK NUMBERING SYSTEM
 

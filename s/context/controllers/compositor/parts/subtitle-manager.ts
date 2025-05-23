@@ -26,57 +26,77 @@ export class SubtitleManager {
      * Add multiple subtitles to the timeline
      * @param subtitles The subtitle entries to add
      * @param state The current application state
-     * @param preferredTrack Optional track number to place subtitles directly above (on preferredTrack + 1)
+     * @param selectedEffectId Optional ID of the selected video/audio effect to move to a lower priority track
      */
-    addSubtitles(subtitles: SubtitleEntry[], state: State, preferredTrack?: number): TextEffect[] {
+    addSubtitles(subtitles: SubtitleEntry[], state: State, selectedEffectId?: string): TextEffect[] {
         // Find a good track for subtitles
         // IMPORTANT NOTE: Track indices are 0-based, but are rendered in reverse order
         // Track 0 appears at the TOP of the timeline visually
         // Higher track numbers appear LOWER in the visual stack
         // zIndex = tracks.length - track (inverted for visual display)
         
-        let track: number;
+        let subtitleTrack: number;
         
-        if (preferredTrack !== undefined) {
-            // Use the track above the preferred track
-            // Since tracks are visually inverted, track+1 will appear BELOW the preferred track
-            track = preferredTrack + 1;
-            console.log(`[SubtitleManager] Using track ${track} (preferred track ${preferredTrack} + 1)`)
+        if (selectedEffectId) {
+            // Find the selected effect
+            const selectedEffect = state.effects.find(e => e.id === selectedEffectId);
+            if (selectedEffect && (selectedEffect.kind === "video" || selectedEffect.kind === "audio")) {
+                const originalTrack = selectedEffect.track;
+                const newVideoTrack = originalTrack + 1;
+                
+                console.log(`[SubtitleManager] Moving selected ${selectedEffect.kind} from track ${originalTrack} to track ${newVideoTrack} to make room for subtitles`);
+                
+                // Ensure we have enough tracks for the video move
+                if (newVideoTrack >= state.tracks.length) {
+                    console.log(`[SubtitleManager] Adding track for video relocation`);
+                    omnislate.context.actions.add_track();
+                }
+                
+                // Move the selected video/audio effect to the new track
+                omnislate.context.actions.set_effect_track(selectedEffect, newVideoTrack);
+                
+                // Place subtitles on the original track (which now has higher rendering priority)
+                subtitleTrack = originalTrack;
+                console.log(`[SubtitleManager] Placing subtitles on track ${subtitleTrack} (original video track)`);
+            } else {
+                // Fallback: use default behavior
+                const usedTracks = state.effects.map(effect => effect.track);
+                subtitleTrack = usedTracks.length > 0 ? Math.max(...usedTracks) + 1 : 0;
+                console.log(`[SubtitleManager] Selected effect not found or not video/audio, using highest available track ${subtitleTrack}`);
+            }
         } else {
             // Default behavior: use the highest track + 1
-            const usedTracks = state.effects.map(effect => effect.track)
-            track = usedTracks.length > 0 ? Math.max(...usedTracks) + 1 : 0
-            console.log(`[SubtitleManager] Using highest available track ${track}`)
+            const usedTracks = state.effects.map(effect => effect.track);
+            subtitleTrack = usedTracks.length > 0 ? Math.max(...usedTracks) + 1 : 0;
+            console.log(`[SubtitleManager] No selected effect provided, using highest available track ${subtitleTrack}`);
         }
 
-        // Ensure we have enough tracks
-        if (track >= state.tracks.length) {
-            console.log(`[SubtitleManager] Need to add tracks (current: ${state.tracks.length}, needed: ${track + 1})`)
-            for (let i = state.tracks.length; i <= track; i++) {
-                // Add tracks if needed
-                omnislate.context.actions.add_track()
+        // Ensure we have enough tracks for subtitles
+        if (subtitleTrack >= state.tracks.length) {
+            console.log(`[SubtitleManager] Need to add tracks for subtitles (current: ${state.tracks.length}, needed: ${subtitleTrack + 1})`);
+            for (let i = state.tracks.length; i <= subtitleTrack; i++) {
+                omnislate.context.actions.add_track();
             }
-            // Verify tracks were added
-            console.log(`[SubtitleManager] After adding tracks: ${state.tracks.length} tracks available`)
+            console.log(`[SubtitleManager] After adding tracks: ${state.tracks.length} tracks available`);
         }
 
         // Verify the track exists in state
-        if (track >= state.tracks.length) {
-            console.error(`[SubtitleManager] Failed to add enough tracks. Using highest available track ${state.tracks.length - 1}`)
-            track = state.tracks.length - 1
+        if (subtitleTrack >= state.tracks.length) {
+            console.error(`[SubtitleManager] Failed to add enough tracks. Using highest available track ${state.tracks.length - 1}`);
+            subtitleTrack = state.tracks.length - 1;
         }
 
         // Create and add subtitles
-        const addedEffects: TextEffect[] = []
+        const addedEffects: TextEffect[] = [];
 
         for (const subtitle of subtitles) {
-            const effect = this.createSubtitleEffect(subtitle, track, state)
-            this.textManager.add_text_effect(effect)
-            addedEffects.push(effect)
+            const effect = this.createSubtitleEffect(subtitle, subtitleTrack, state);
+            this.textManager.add_text_effect(effect);
+            addedEffects.push(effect);
         }
 
-        console.log(`[SubtitleManager] Added ${addedEffects.length} subtitles on track ${track}`)
-        return addedEffects
+        console.log(`[SubtitleManager] Added ${addedEffects.length} subtitles on track ${subtitleTrack}`);
+        return addedEffects;
     }
 
     /**
