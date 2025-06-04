@@ -27,8 +27,9 @@ export class SubtitleManager {
      * @param subtitles The subtitle entries to add
      * @param state The current application state
      * @param selectedEffectId Optional ID of the selected video/audio effect to move to a lower priority track
+     * @param tracksNeeded Optional number of tracks needed for all subtitles (defaults to 1)
      */
-    addSubtitles(subtitles: SubtitleEntry[], state: State, selectedEffectId?: string): TextEffect[] {
+    addSubtitles(subtitles: SubtitleEntry[], state: State, selectedEffectId?: string, tracksNeeded: number = 1): TextEffect[] {
         // Find a good track for subtitles
         // IMPORTANT NOTE: Track indices are 0-based, but are rendered in reverse order
         // Track 0 appears at the TOP of the timeline visually
@@ -42,9 +43,9 @@ export class SubtitleManager {
             const selectedEffect = state.effects.find(e => e.id === selectedEffectId);
             if (selectedEffect && (selectedEffect.kind === "video" || selectedEffect.kind === "audio")) {
                 const originalTrack = selectedEffect.track;
-                const newVideoTrack = originalTrack + 1;
+                const newVideoTrack = originalTrack + tracksNeeded;
                 
-                console.log(`[SubtitleManager] Moving selected ${selectedEffect.kind} from track ${originalTrack} to track ${newVideoTrack} to make room for subtitles`);
+                console.log(`[SubtitleManager] Moving selected ${selectedEffect.kind} from track ${originalTrack} to track ${newVideoTrack} to make room for ${tracksNeeded} subtitle track(s)`);
                 
                 // Ensure we have enough tracks for the video move
                 if (newVideoTrack >= state.tracks.length) {

@@ -45,6 +45,10 @@ export const OmniQuranSubtitles = shadow_component(use => {
   const [dropShadowDistance, setDropShadowDistance] = use.state(2)
   const [dropShadowBlur, setDropShadowBlur] = use.state(0)
   const [dropShadowAlpha, setDropShadowAlpha] = use.state(0.5)
+  
+  // Translation settings
+  const [translationEnabled, setTranslationEnabled] = use.state(false)
+  const [translationType, setTranslationType] = use.state("1") // 1 = Saheeh International
 
   // Find all text effects on a specific track
   const findTextEffectsOnTrack = (trackNumber: number): TextEffect[] => {
@@ -254,7 +258,7 @@ export const OmniQuranSubtitles = shadow_component(use => {
     const startAyah = form.start_ayah.value
     const endAyah = form.end_ayah.value
 
-    debug("Form values", { surahNumber, startAyah, endAyah });
+    debug("Form values", { surahNumber, startAyah, endAyah, translationEnabled, translationType });
 
     if (!surahNumber) {
       debug("No surah number provided");
@@ -286,13 +290,17 @@ export const OmniQuranSubtitles = shadow_component(use => {
       formData.append("end_surah", surahNumber)
       if (startAyah) formData.append("start_ayah", startAyah)
       if (endAyah) formData.append("end_ayah", endAyah)
+      
+      // Add translation parameter
+      formData.append("translation", translationEnabled ? translationType : "0")
 
       debug("FormData created with fields", {
         audio: audioFile.name,
         start_surah: surahNumber,
         end_surah: surahNumber,
         start_ayah: startAyah || 'not provided',
-        end_ayah: endAyah || 'not provided'
+        end_ayah: endAyah || 'not provided',
+        translation: translationEnabled ? translationType : "0"
       });
 
       // Get the backend URL with fallback
@@ -371,10 +379,8 @@ export const OmniQuranSubtitles = shadow_component(use => {
             lineHeight: lineHeight,
             wordWrapWidth: wordWrapWidth,
           },
-          // Position at bottom center
           align: "center",
           wordWrap: true,
-          // Canvas positioning
           rect: getPositionRect(textPosition)
         };
       });
@@ -383,16 +389,71 @@ export const OmniQuranSubtitles = shadow_component(use => {
 
       setProcessingDetails("Adding subtitles to timeline...")
       
-      // Add the subtitles to the timeline, passing the selected effect ID so the video can be moved to ensure proper layering
-      debug("Calling subtitleManager.addSubtitles with selectedEffectId to move video and place subtitles with higher rendering priority");
-      const addedEffects = subtitleManager.addSubtitles(subtitleEntries, use.context.state, selectedEffectId);
-      debug("Subtitles added to timeline", {
+      // Add the Arabic subtitles to the timeline
+      debug("Adding Arabic subtitles with selectedEffectId to move video and place subtitles with higher rendering priority");
+      const tracksNeeded = translationEnabled && data.matches.some((match: any) => match.translation) ? 2 : 1;
+      const addedEffects = subtitleManager.addSubtitles(subtitleEntries, use.context.state, selectedEffectId, tracksNeeded);
+      debug("Arabic subtitles added to timeline", {
         count: addedEffects.length,
         trackUsed: addedEffects.length > 0 ? addedEffects[0].track : 'none'
       });
       
+      let translationCount = 0;
+      
+      // If translation is enabled, create and add translation subtitles
+      if (translationEnabled && data.matches.some((match: any) => match.translation)) {
+        setProcessingDetails("Adding translation subtitles...")
+        
+        // Create translation subtitle entries
+        const translationSubtitleEntries = data.matches
+          .filter((match: any) => match.translation) // Only include matches with translation
+          .map((match: any, index: number) => {
+            const startTime = parseSrtTimestamp(match.start);
+            const endTime = parseSrtTimestamp(match.end);
+            
+            debug(`Translation Subtitle ${index + 1}`, {
+              translationText: match.translation,
+              rawStartTime: match.start,
+              rawEndTime: match.end,
+              parsedStartTime: startTime,
+              parsedEndTime: endTime
+            });
+            
+            return {
+              text: match.translation,
+              startTime: startTime,
+              endTime: endTime,
+              style: {
+                fontSize: Math.floor(fontSize * 0.8), // Slightly smaller for translation
+                fontFamily: "Arial", // Use regular font for English
+                fill: ["#FFFFFF"],
+                stroke: "#000000",
+                strokeThickness: 2,
+                lineHeight: lineHeight,
+                wordWrapWidth: wordWrapWidth,
+              },
+              align: "center",
+              wordWrap: true,
+              rect: getPositionRect("top-center") // Place translation at top
+            };
+          });
+
+        debug("Translation subtitle entries created", { count: translationSubtitleEntries.length });
+
+        if (translationSubtitleEntries.length > 0) {
+          // Add translation subtitles on a new track
+          debug("Adding translation subtitles to new track");
+          const translationEffects = subtitleManager.addSubtitles(translationSubtitleEntries, use.context.state);
+          translationCount = translationEffects.length;
+          debug("Translation subtitles added to timeline", {
+            count: translationEffects.length,
+            trackUsed: translationEffects.length > 0 ? translationEffects[0].track : 'none'
+          });
+        }
+      }
+      
       if (addedEffects.length > 0) {
-        setLastCreatedTrack(addedEffects[0].track); // Store the track number where subtitles were created
+        setLastCreatedTrack(addedEffects[0].track); // Store the track number where Arabic subtitles were created
       }
 
       // Update text tracks list
@@ -401,7 +462,7 @@ export const OmniQuranSubtitles = shadow_component(use => {
 
       // Final status update
       setProgressStage(0) // Reset
-      setStatusMessage(`Success! Added ${subtitleEntries.length} ayahs as subtitles`)
+      setStatusMessage(`Success! Added ${addedEffects.length} Arabic ayahs${translationCount > 0 ? ` and ${translationCount} translations` : ''} as subtitles`)
       setProcessingDetails("Process completed successfully")
       debug("Process completed successfully");
     } catch (err: unknown) {
@@ -527,6 +588,7 @@ export const OmniQuranSubtitles = shadow_component(use => {
             // Update fill color
             if (effect.fill instanceof Array && effect.fill.length > 0) {
               if (textObject.sprite.style.fill instanceof Array) {
+                //@ts-ignore - PIXI.js type issue with FillInput
                 textObject.sprite.style.fill[0] = effect.fill[0];
               } else {
                 textObject.sprite.style.fill = effect.fill[0];
@@ -535,14 +597,19 @@ export const OmniQuranSubtitles = shadow_component(use => {
             
             // Update stroke properties
             textObject.sprite.style.stroke = effect.stroke;
+            //@ts-ignore - PIXI.js type issue with strokeThickness
             textObject.sprite.style.strokeThickness = effect.strokeThickness;
             
             // Update shadow properties
             textObject.sprite.style.dropShadow = effect.dropShadow;
             if (effect.dropShadow) {
+              //@ts-ignore - PIXI.js type issue with dropShadow properties
               textObject.sprite.style.dropShadowColor = effect.dropShadowColor;
+              //@ts-ignore - PIXI.js type issue with dropShadow properties
               textObject.sprite.style.dropShadowDistance = effect.dropShadowDistance;
+              //@ts-ignore - PIXI.js type issue with dropShadow properties
               textObject.sprite.style.dropShadowBlur = effect.dropShadowBlur;
+              //@ts-ignore - PIXI.js type issue with dropShadow properties
               textObject.sprite.style.dropShadowAlpha = effect.dropShadowAlpha;
             }
             
@@ -1129,6 +1196,30 @@ export const OmniQuranSubtitles = shadow_component(use => {
               min="1" 
             />
           </div>
+          
+          <div class="form-group">
+            <label>
+              <input 
+                type="checkbox" 
+                .checked=${translationEnabled}
+                @change=${(e: Event) => setTranslationEnabled((e.target as HTMLInputElement).checked)}
+              />
+              Include English Translation
+            </label>
+          </div>
+          
+          ${translationEnabled ? html`
+            <div class="form-group">
+              <label for="translation_type">Translation</label>
+              <select 
+                id="translation_type" 
+                .value=${translationType}
+                @change=${(e: Event) => setTranslationType((e.target as HTMLSelectElement).value)}
+              >
+                <option value="1">Saheeh International</option>
+              </select>
+            </div>
+          ` : null}
           
           <button 
             type="submit" 

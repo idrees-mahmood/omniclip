@@ -55,6 +55,18 @@ export const styles = css`
     font-size: 0.9rem;
   }
   
+  input[type="checkbox"] {
+    margin-right: 0.5rem;
+    transform: scale(1.2);
+    cursor: pointer;
+  }
+  
+  label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  
   select {
     width: 100%;
     padding: 0.5rem;
